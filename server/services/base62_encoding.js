@@ -7,3 +7,5 @@ function encodeBase62(number){
     }
     return result || '0';
 }
+
+export {encodeBase62};
