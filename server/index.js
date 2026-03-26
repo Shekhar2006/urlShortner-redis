@@ -6,7 +6,7 @@ import { encodeBase62 } from './services/base62_encoding.js';
 import { log } from 'console';
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 const redisPort = process.env.REDIS_PORT || 6379;
 
 app.use(cors());
@@ -27,29 +27,32 @@ redisCli.on('error', (error) => {
 
 // routes
 app.post("/shorten", async (req, res) => {
-    const { originalUrl } = req.body;
+    const originalUrl = req.body["originalUrl"];
 
     if (!originalUrl) {
         return res.status(400).json({ error: "Url is required" });
     }
+    else {
+        try {
 
-    try {
-
-        const id = await redisCli.incr("global_counter");
-        console.log(id);
-        const shortUrlId = encodeBase62(id);
-        console.log(shortUrlId);
-        await redisCli.hSet("urls", shortUrlId, originalUrl);
-        return res.status(200).json({ data: shortUrlId });
+            const id = await redisCli.incr("global_counter");
+            console.log(id);
+            const shortUrlId = encodeBase62(id);
+            console.log(shortUrlId);
+            await redisCli.hSet("urls", shortUrlId, originalUrl);
+            return res.status(200).json({ data: shortUrlId });
 
 
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
     }
+
 });
 
-// get long url from short url
 
+
+// get long url from short url
 app.get("/:shortUrlId", async (req, res) => {
     const shortUrlId = req.params.shortUrlId;
     const originalUrl = await redisCli.hGet("urls", shortUrlId);
@@ -58,13 +61,13 @@ app.get("/:shortUrlId", async (req, res) => {
     }
 });
 
-app.listen(port, async () => {
 
+// server start
+app.listen(port, async () => {
     try {
         await redisCli.connect();
         console.log(`Server listening on port ${port}`);
     } catch (error) {
         console.log("Error", error);
     }
-
 });
